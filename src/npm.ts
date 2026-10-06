@@ -3,7 +3,7 @@ import {mkdir, readFile, readdir, writeFile} from "node:fs/promises";
 import {dirname, extname, join} from "node:path/posix";
 import type {CallExpression} from "acorn";
 import {simple} from "acorn-walk";
-import {maxSatisfying, rsort, satisfies, validRange} from "semver";
+import {maxSatisfying, rsort, satisfies, valid, validRange} from "semver";
 import {DUCKDB_WASM_VERSION} from "./duckdb.js";
 import {isEnoent} from "./error.js";
 import {annotatePath} from "./javascript/annotate.js";
@@ -197,12 +197,14 @@ export async function initializeNpmVersionCache(root: string, dir = "_npm"): Pro
       if (entry.startsWith("@")) {
         for (const subentry of await readdir(join(cacheDir, entry))) {
           const {name, range} = parseNpmSpecifier(`${entry}/${subentry}`);
+          if (!valid(range)) continue; // ignore malformed cache entries
           const versions = cache.get(name);
           if (versions) versions.push(range!);
           else cache.set(name, [range!]);
         }
       } else {
         const {name, range} = parseNpmSpecifier(entry);
+        if (!valid(range)) continue; // ignore malformed cache entries
         const versions = cache.get(name);
         if (versions) versions.push(range!);
         else cache.set(name, [range!]);

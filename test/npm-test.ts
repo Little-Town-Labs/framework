@@ -174,6 +174,23 @@ describe("initializeNpmVersionCache(root, dir)", () => {
   it("dir defaults to _npm", async () => {
     assert.deepStrictEqual(await initializeNpmVersionCache(root, "_npm"), await initializeNpmVersionCache(root));
   });
+  it("ignores cache entries that are not valid versions", async () => {
+    const root = join("test", "input", "npm-malformed");
+    const dir = join(root, ".observablehq", "cache", "_npm");
+    await mkdir(join(dir, "@observablehq", "plot@0"), {recursive: true});
+    await mkdir(join(dir, "@observablehq", "plot@0.6.11"), {recursive: true});
+    await mkdir(join(dir, "d3@7"), {recursive: true});
+    await mkdir(join(dir, "d3@7.9.0"), {recursive: true});
+    await mkdir(join(dir, "htl"), {recursive: true});
+    await mkdir(join(dir, "leaflet@latest"), {recursive: true});
+    assert.deepStrictEqual(
+      await initializeNpmVersionCache(root),
+      new Map([
+        ["@observablehq/plot", ["0.6.11"]],
+        ["d3", ["7.9.0"]]
+      ])
+    );
+  });
 });
 
 function resolve(path: string, specifier: string): string {
